@@ -1,0 +1,5 @@
+2026-05-13T03:18:23Z BLOCKED marketing-weibo-strategist url:community caution 3_findings
+2026-05-13T03:18:46Z INSTALL marketing-weibo-strategist url:community safe sha256:7a79f1ec3894ab2e
+2026-05-13T09:25:47Z BLOCKED engineering-wechat-mini-program-developer url:community caution 6_findings
+2026-05-13T09:26:12Z INSTALL engineering-wechat-mini-program-developer url:community caution sha256:dcda22b2d93c1bbf
+2026-05-13T09:54:02Z INSTALL support-legal-compliance-checker url:community safe sha256:0544f2219d52742f

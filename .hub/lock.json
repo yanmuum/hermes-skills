@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "installed": {
+    "marketing-weibo-strategist": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/MarcusRawlins/agency-agents/main/marketing/marketing-weibo-strategist.md",
+      "trust_level": "community",
+      "scan_verdict": "safe",
+      "content_hash": "sha256:7a79f1ec3894ab2e",
+      "install_path": "marketing-weibo-strategist",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/MarcusRawlins/agency-agents/main/marketing/marketing-weibo-strategist.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-05-13T03:18:46.023134+00:00",
+      "updated_at": "2026-05-13T03:18:46.023143+00:00"
+    },
+    "engineering-wechat-mini-program-developer": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/MarcusRawlins/agency-agents/main/engineering/engineering-wechat-mini-program-developer.md",
+      "trust_level": "community",
+      "scan_verdict": "caution",
+      "content_hash": "sha256:dcda22b2d93c1bbf",
+      "install_path": "engineering-wechat-mini-program-developer",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/MarcusRawlins/agency-agents/main/engineering/engineering-wechat-mini-program-developer.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-05-13T09:26:12.286638+00:00",
+      "updated_at": "2026-05-13T09:26:12.286647+00:00"
+    },
+    "support-legal-compliance-checker": {
+      "source": "url",
+      "identifier": "https://raw.githubusercontent.com/MarcusRawlins/agency-agents/main/support/support-legal-compliance-checker.md",
+      "trust_level": "community",
+      "scan_verdict": "safe",
+      "content_hash": "sha256:0544f2219d52742f",
+      "install_path": "support-legal-compliance-checker",
+      "files": [
+        "SKILL.md"
+      ],
+      "metadata": {
+        "url": "https://raw.githubusercontent.com/MarcusRawlins/agency-agents/main/support/support-legal-compliance-checker.md",
+        "awaiting_name": false
+      },
+      "installed_at": "2026-05-13T09:54:02.820299+00:00",
+      "updated_at": "2026-05-13T09:54:02.820309+00:00"
+    }
+  }
+}
