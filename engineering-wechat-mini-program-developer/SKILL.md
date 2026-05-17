@@ -285,75 +285,20 @@ Page({
 3. **Image Optimization**: Use CDN with WebP support, implement lazy loading, optimize image dimensions
 4. **Network Optimization**: Implement request caching, data prefetching, and offline resilience
 
-## 🚨 Common Pitfalls (踩坑记录)
+## ⚠️ 调试参考
 
-实战中遇到的微信小程序常见错误及修复方法：
+微信小程序调试排错的完整技能在 **`wechat-mini-program-debugging`**（`software-development/wechat-mini-program-debugging`），包含以下 8 个排查轮次：
 
-### 1. TabBar 图标仅支持 PNG/JPG
-**错误现象：** `["tabBar"]["list"][N]["selectedIconPath"] 文件格式错误，仅支持.png、jpg、jpeg格式`
-**原因：** tabBar 的 `iconPath` 和 `selectedIconPath` 不支持 SVG 格式
-**修复：** 
-- 将 SVG 转为 PNG（可用 `cairosvg` 或 Pillow）
-- 文件必须真实存在且扩展名与实际格式匹配
+1. 检查 `project.config.json`（AppID / libVersion）
+2. TabBar 图标格式（不支持 SVG，仅支持 PNG/JPG）
+3. WXML 模板不支持可选链 `?.`
+4. 组件注册但未在模板中使用 + 事件处理切换
+5. 缺失本地图片资源
+6. 缓存/网络/AppID 注册问题
+7. WSL 路径处理
+8. 验证步骤
 
-### 2. WXML 不支持可选链 `?.`
-**错误现象：** `编译.wxml文件错误` 
-**原因：** WXML 模板语法只支持普通属性访问（`.`），不支持 JavaScript 的可选链（`?.`）、空值合并（`??`）等现代语法
-**修复：**
-```xml
-<!-- ❌ 错误 -->
-{{categories[activeIndex]?.name}}
-{{order.address?.phone}}
-{{item.items[0]?.cover || ''}}
-
-<!-- ✅ 正确 -->
-{{categories[activeIndex].name}}
-{{order.address.phone}}
-{{item.items[0].cover || ''}}
-```
-WeChat 遇到 undefined 属性会安静渲染为空字符串，不需要可选链。
-
-### 3. 注册了组件但未使用
-**错误现象：** `不应存在无使用的组件`
-**原因：** 在 page.json 的 `usingComponents` 中注册了组件，但 WXML 中没有使用对应的标签
-**修复：**
-- 在 WXML 中使用注册的组件标签（如 `<peach-card />`）
-- 或者移除 `usingComponents` 中未使用的注册
-
-### 4. 组件事件使用 `e.detail` 而非 `e.currentTarget.dataset`
-**原因：** 自定义组件通过 `triggerEvent('tap', { id: value })` 触发事件，父页面接收时 `e.detail` 包含传递的数据，而 `e.currentTarget.dataset` 是原生元素的数据
-**修复：**
-```javascript
-// ❌ 组件事件错误写法
-onProductTap(e) {
-  const id = e.currentTarget.dataset.id  // undefined
-}
-
-// ✅ 组件事件正确写法
-onProductTap(e) {
-  const id = e.detail.id
-}
-```
-
-### 5. 引用不存在的本地图片
-**错误现象：** `Failed to load local image resource /images/xxx.png`
-**原因：** WXML 或 JS 中引用了 `'/images/xxx.png'` 但文件不存在
-**修复：**
-- 确保 images 目录下所有被引用的图片文件都存在
-- 可以用 Pillow 创建占位图作为开发期替代
-
-### 6. WSL 路径无法在微信开发者工具打开
-**原因：** 微信开发者工具的原生文件对话框不支持 `\\wsl$\` 网络路径
-**修复：** 将项目复制到 Windows 本地盘（桌面/D盘），不要在 WSL 内直接打开
-
-### 7. AppID 问题
-- `"appid": "wx0000000000000000"` 是假占位，会导致模拟器失败
-- 解决方案：用真实 AppID 或在导入时选「测试号（小程序）」
-- 未注册的 AppID 也会导致模拟器失败
-
-### 8. libVersion 兼容性
-- 开发者工具可能自动将 `project.config.json` 中的 `libVersion` 改为最新版
-- 如果报错，可以尝试降级到稳定版本（如 `2.30.0`）
+构建时遇到模拟器/编译错误，直接加载该技能排查。
 
 ### Step 4: Testing & Review Submission
 1. **Functional Testing**: Test across iOS and Android WeChat, various device sizes, and network conditions

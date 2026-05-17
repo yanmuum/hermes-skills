@@ -129,10 +129,12 @@ hermes skills install "https://raw.githubusercontent.com/owner/repo/main/path/to
 
 Even with the raw URL, community-source skills get a CAUTION or SAFE verdict. If CAUTION (e.g., legitimate `require('../../utils')` traversal patterns), pass `--force`:
 
-```
+```bash
 hermes skills install "https://raw.githubusercontent.com/owner/repo/main/path/to/SKILL.md" --force
 ```
 hermes skills inspect ID    Preview without installing
+
+⚠️ **Twitter/X Links:** If the user asks to install a skill by sending an X/Twitter URL, the content cannot be fetched (GFW blocks Twitter). Do NOT loop through many approaches — try 2-3 quick checks (browser, curl, GitHub search), then ask the user to paste the tweet content directly. See `references/blocked-external-sources.md`.
 hermes skills config        Enable/disable skills per platform
 hermes skills check         Check for updates
 hermes skills update        Update outdated skills
@@ -745,10 +747,32 @@ User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
 3. Load explicitly: `/skill name` or `hermes -s name`
 
 ### Gateway issues
-Check logs first:
+Check logs first — always diagnose BOTH logs in parallel:
+
+**Feishu WebSocket & messaging:**
 ```bash
-grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
+tail -30 ~/.hermes/logs/gateway.log | grep -iE "feishu|error|fail|inbound|raw message|disconnect"
 ```
+
+**API provider & agent errors (402, timeouts, session corruption):**
+```bash
+tail -30 ~/.hermes/logs/errors.log | grep -iE "402|insufficient balance|timeout|fail|error|connect"
+```
+
+**⚠️ API balance (HTTP 402) — the silent killer.** When DeepSeek/OpenAI/etc. runs out of credits, ALL calls fail. The gateway process stays alive, Feishu shows "Connected", but no messages get responses. Diagnose:
+```bash
+grep -iE "402|insufficient balance" ~/.hermes/logs/errors.log | tail -5
+```
+Fix at the provider's billing page (e.g. https://platform.deepseek.com), then restart gateway.
+
+**⚠️ Restart footgun — prefer `hermes gateway stop` over `pkill`.** Running `pkill -9 -f "gateway run"` from inside a Hermes agent session (via the terminal tool) can kill the current session's process AND the new gateway you just started, leaving nothing running. Much safer:
+
+```bash
+hermes gateway stop    # safe — graceful shutdown (preferred)
+hermes gateway run     # fresh start
+```
+
+If you must pkill (gateway truly hung), run it in a separate terminal or use `kill PID` by PID number.
 
 Common gateway problems:
 - **Gateway dies on SSH logout**: Enable linger: `sudo loginctl enable-linger $USER`
@@ -756,7 +780,8 @@ Common gateway problems:
 - **WSL proxy poisoning (common root cause of mystery disconnects)**: WSL automatically inherits `http_proxy`/`https_proxy` env vars from the Windows host if the user has Clash/V2Ray/etc. In `~/.bashrc` or Windows env vars. When the proxy client is not running, port 7890 (or whatever the proxy port is) is closed — all API calls (DeepSeek, Feishu, OpenRouter) fail silently, causing session disconnects and gateway timeouts. Diagnose with:
   ```bash
   env | grep -i proxy                   # see if proxy vars are set
-  timeout 2 bash -c 'echo > /dev/tcp/172.26.240.1/7890' 2>/dev/null && echo "可达" || echo "不通"
+  timeout 2 bash -c 'echo > /dev/tcp/172.26.240.1/7890' 2>/dev/null && echo "✅ 代理7890可达" || echo "❌ 代理7890不通"
+  timeout 2 bash -c 'echo > /dev/tcp/172.26.240.1/8080' 2>/dev/null && echo "✅ 代理8080可达" || echo "❌ 代理8080不通"
   # Test API provider directly (without proxy):
   unset http_proxy https_proxy all_proxy
   curl -s -o /dev/null -w "%{http_code}" --max-time 5 https://api.deepseek.com
@@ -856,6 +881,8 @@ hermes config set auxiliary.vision.model <model_name>
 | Gateway logs | `~/.hermes/logs/gateway.log` |
 | Session files | `~/.hermes/sessions/` or `hermes sessions browse` |
 | Source code | `~/.hermes/hermes-agent/` |
+| **New machine setup** | `references/setup-new-machine-with-skills-repo.md` (cloning private skills repo) |
+| **Blocked external sources** | `references/blocked-external-sources.md` (handling X links, GFW workarounds, accessible services) |
 
 ---
 

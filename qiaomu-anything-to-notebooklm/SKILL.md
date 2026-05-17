@@ -68,6 +68,11 @@ homepage: https://github.com/joeseesun/qiaomu-anything-to-notebooklm
 
 ## 前置条件
 
+> ✅ **NotebookLM 认证状态：已绑定**（2026-05-15）
+> 通过从 Windows Chrome 浏览器导出 Google cookies 完成认证。
+> `storage_state.json` 位于 `~/.notebooklm/profiles/default/`
+> 下次登录如 cookie 过期，重新导出即可。
+
 ### 1. 安装 wexin-read-mcp
 
 MCP 服务器已安装在：`~/.claude/skills/qiaomu-anything-to-notebooklm/wexin-read-mcp/`
@@ -94,12 +99,60 @@ MCP 服务器已安装在：`~/.claude/skills/qiaomu-anything-to-notebooklm/wexi
 
 ### 2. notebooklm 认证
 
-首次使用前必须认证：
+首次使用前必须认证（Hermes/WSL 环境）：
 
 ```bash
+# 安装
+pip3 install --break-system-packages notebooklm-py
+
+# 创建 profile
+notebooklm doctor --fix
+
+# 登录（WSLg 会在 Windows 桌面弹出 Chromium 浏览器窗口）
 notebooklm login
-notebooklm list  # 验证认证成功
+# ⚠️ 手动在浏览器中登录 Google 账号
+# 确认跳转到 notebooklm.google.com 后，回到终端按 Enter
+
+# 验证
+notebooklm list
 ```
+
+**⚠️ WSL 环境常见问题：浏览器窗口闪退 → 手动 Cookie 导出方案**
+
+在 WSL/WSLg 中，`notebooklm login` 弹出的 Chromium 窗口经常闪退。替代方案：
+
+1. 在 Windows Chrome 中登录 notebooklm.google.com
+2. F12 → Application → Cookies → 全选 → Export as JSON
+3. 把 JSON 贴给 Hermes，生成 storage_state.json
+
+详细步骤见 `references/wsl-manual-cookie-auth.md`
+
+**⚠️ Cookie 过期处理**
+
+Google cookies 可能随时过期（RotateCookies POST 返回 401）：
+- 症状：`notebooklm list` 超时或 `auth check --test` 失败
+- 修复：重新从浏览器导出 cookies，覆盖 `storage_state.json`
+- 不需要重新运行 `notebooklm login`，导出 cookies 即可
+
+**⚠️ GFW 阻断 Google OAuth Token 交换（中国大陆/WSL 环境常见）**
+
+即使 SID cookie 未过期（`notebooklm doctor` 显示 `Auth: ✓ pass`、`Cookies present: ✓ pass`），Google 的 OAuth token 交换 API 仍可能被 GFW 阻断，导致：
+- `notebooklm list` 超时（而 `notebooklm status` 正常 —— 因为 status 读的是本地 context.json）
+- `notebooklm create` / `notebooklm source add` 全部超时
+- `notebooklm auth check --test` 的 `Token fetch` 显示 `✗ fail`
+
+**诊断命令**：
+```bash
+notebooklm doctor           # 确认 local auth ✓ pass（不代表 API 可用）
+notebooklm auth check --test  # 看 Token fetch ✗ fail 即表示网络层面被阻断
+notebooklm status            # 读本地缓存，能用不代表真通
+notebooklm list              # 实际 API 调用 —— 超时则确认网络阻断
+```
+
+**解决方案**：
+1. 暂时无法在 WSL 环境中绕过 GFW 完成 token 交换
+2. 回退方案：手动复制爬取到的内容（`/tmp/` 下已有 TXT），在浏览器中打开 notebooklm.google.com 手动上传
+3. 如果有 VPN 可在 WSL 层面设置全局代理（`export https_proxy=...`），重试 `notebooklm list`
 
 ## 触发方式
 
@@ -235,6 +288,15 @@ Claude 自动识别输入类型：
   4. **AMP 页面** — AMP 版本通常没有付费墙
   5. **archive.today** — 从网页存档获取全文
   - 支持的付费网站：NYT、WSJ、FT、Economist、Bloomberg、Washington Post、New Yorker、Wired、The Atlantic、Medium、MIT Technology Review、SCMP 等 300+ 站点
+
+**注意**：对于 Cloudflare 保护的硬付费墙网站（如 theinformation.com），自动化绕过不可行 — 参见「注意事项」章节。
+
+## 支持文件索引
+
+- `references/cookie-export-workflow.md` — Chrome DevTools 表格格式 Cookie 导出并转换为 storage_state.json 的完整流程（含 Python 转换脚本）
+- `references/hermes-fallback-workflow.md` — Hermes 环境回退方案（curl + HTML 解析替代 MCP/notebooklm CLI）
+- `references/wsl-manual-cookie-auth.md` — WSL 环境手动 Cookie 认证方案（替代 Playwright 登录，解决浏览器闪退）
+- `references/paywall-bypass-database.md` — 30+ 付费站点的爬取可行性数据库（含绕过策略、实测状态、硬墙判断方法），用户询问"能不能爬某个付费站"时直接查阅
 
 **Office 文档/电子书/PDF**：
 - **EPUB**：使用 Python ebooklib + BeautifulSoup 直接提取文本（避免 Calibre 架构问题）
@@ -594,9 +656,50 @@ Skill 会：
 
 Skill 会将要求作为 instructions 传给 NotebookLM。
 
+## 输出格式与推送
+
+### 飞书推送格式
+
+用户（yanmuu）偏好：**Markdown 格式推送**到飞书私聊，方便存档查阅。不要纯文本消息。
+
+### 深度分析输出结构
+
+无论是否使用 NotebookLM，深度分析输出格式统一：
+
+```
+📊 深度分析报告
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+「标题」
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 内容概览
+...
+
+🔍 十大深度问题分析
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❓ Q1：问题
+✅ A1：答案
+...
+
+🎯 核心观点提炼
+💡 个人启发
+```
+
 ## 注意事项
 
-1. **频率限制**：
+1. **Hermes 环境回退**：如果 MCP weixin-reader 或 notebooklm CLI 不可用，参见 `references/hermes-fallback-workflow.md` — 使用 curl + HTML 解析替代方案。
+
+2. **付费墙限制（Cloudflare 保护的网站）**：
+   - 文章付费墙分为软付费墙（Soft Paywall）和硬付费墙（Hard Paywall）
+   - **软付费墙**（NYT、WSJ、FT、Bloomberg、Medium、Economist 等）：r.jina.ai + UA 伪装策略通常能绕过
+   - **硬付费墙**（The Information、Stat News、某些 Cloudflare 保护的站点）：Cloudflare 的 WAF（Web Application Firewall）会在 HTTP 层面拦截所有非浏览器请求，包括 r.jina.ai 和 archive.today
+   - **判断方法**：curl 返回 Cloudflare 验证页面（"Sorry, you have been blocked" / "Checking your browser"）即为硬付费墙
+   - **处理方式**：硬付费墙文章无法通过自动化绕过。回退方案：
+     a. 手动复制文章全文给 Hermes，Hermes 保存为 TXT 后上传 NotebookLM
+     b. 或者让用户自己在浏览器中打开文章，使用 Read Aloud/Print 等导出为 PDF，然后上传 PDF
+     c. 或者尝试 Google Cache（`webcache.googleusercontent.com/search?q=cache:<URL>`）—— 但同样可能被 Cloudflare 拦截
+   - 确认已被 Cloudflare 保护的知名站点：theinformation.com、statnews.com、some wired.com 文章
+2. **频率限制**：
    - 每次请求间隔 > 2 秒，避免被微信封禁
    - NotebookLM 生成任务有并发限制（最多 3 个同时进行）
 
@@ -652,7 +755,43 @@ Skill 会将要求作为 instructions 传给 NotebookLM。
 
 ## 故障排查
 
-### 1. MCP 工具未找到
+### 1. NotebookLM 登录时浏览器闪退（WSL 环境）
+
+在 WSL/WSLg 环境运行 `notebooklm login` 时，Chrome 浏览器窗口可能弹出后立即关闭：
+
+**原因**：Playwright 缓存的浏览器 profile 损坏或过时。
+
+**解决方法（按优先级）**：
+
+```bash
+# 方案 A：用 --fresh 清除浏览器缓存后重试（最推荐）
+notebooklm login --fresh
+
+# 方案 B：从 Windows 已登录的 Chrome/Edge 读取 cookie（无需弹出浏览器窗口）
+notebooklm login --browser-cookies
+
+# 方案 C：指定特定浏览器
+notebooklm login --browser-cookies chrome    # Windows Chrome
+notebooklm login --browser-cookies edge      # Windows Edge
+
+# 方案 D：先诊断再登录
+notebooklm doctor       # 检查认证状态
+notebooklm doctor --fix # 修复 profile 目录
+notebooklm login --fresh
+```
+
+**验证方法**：
+```bash
+notebooklm list          # 能列出笔记本即表示认证成功
+notebooklm doctor        # 确认 Auth: ✓ pass
+notebooklm status        # 查看当前上下文
+```
+
+**常见误区**：
+- 如果 WSLg 完全不可用（Weston 崩溃），可以尝试 `--browser-cookies` 直接从 Windows 浏览器读取 cookie
+- `--browser-cookies` 依赖 `rookiepy` 库，已在 `notebooklm-py[cookies]` 中安装
+
+### 2. MCP 工具未找到
 
 ```bash
 # 测试 MCP 服务器

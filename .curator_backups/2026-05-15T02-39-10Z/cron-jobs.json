@@ -1,0 +1,84 @@
+{
+  "jobs": [
+    {
+      "id": "53902f375811",
+      "name": "Polymarket \u94b1\u5305\u76d1\u63a7",
+      "prompt": "\u68c0\u67e5 Polymarket \u94b1\u5305 0x492442eab586f242b53bda933fd5de859c8a3782 \u662f\u5426\u6709\u65b0\u4ea4\u6613\u3002\u8fd0\u884c\u811a\u672c ~/.hermes/scripts/check_polymarket_wallet.py \u83b7\u53d6\u7ed3\u679c\u3002\n\n\u5982\u679c\u811a\u672c\u8f93\u51fa\u4e0d\u4e3a\u7a7a\uff08\u6709\u65b0\u4ea4\u6613\uff09\uff0c\u5219\uff1a\n1. \u7528 send_message \u53d1\u9001\u5230\u98de\u4e66\uff08target='feishu'\uff09\uff0c\u5185\u5bb9\u4e3a\u811a\u672c\u7684\u5168\u90e8\u8f93\u51fa\n2. \u6700\u7ec8\u56de\u590d\u8f93\u51fa\u811a\u672c\u7684\u5185\u5bb9\u5373\u53ef\uff08\u4f1a\u81ea\u52a8\u4ea4\u4ed8\u5230\u5f53\u524d\u5bf9\u8bdd\uff09\n\n\u5982\u679c\u811a\u672c\u8f93\u51fa\u4e3a\u7a7a\uff08\u65e0\u65b0\u4ea4\u6613\uff09\uff0c\u56de\u590d\"\u65e0\u65b0\u4ea4\u6613\"\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "interval",
+        "minutes": 15,
+        "display": "every 15m"
+      },
+      "schedule_display": "every 15m",
+      "repeat": {
+        "times": null,
+        "completed": 490
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-09T19:15:15.061161+08:00",
+      "next_run_at": "2026-05-15T10:44:24.724301+08:00",
+      "last_run_at": "2026-05-15T10:29:24.724301+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": "no delivery target resolved for deliver=origin",
+      "deliver": "origin",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "be4b94c31891",
+      "name": "\u6bcf\u65e5\u6280\u80fd\u65b0\u589e\u68c0\u67e5",
+      "prompt": "\u6267\u884c\u6bcf\u65e5\u6280\u80fd\u65b0\u589e\u68c0\u67e5\uff0c\u626b\u63cf ~/.hermes/skills/ \u4e0b\u662f\u5426\u6709\u65b0\u589e\u6280\u80fd\uff0c\u5c06\u5176\u8bb0\u5f55\u5230\u98de\u4e66\u591a\u7ef4\u8868\u683c Hermes\u6280\u80fd\u65b0\u589e\u8bb0\u5f55 \u4e2d\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "skills_daily_check.py",
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 17 * * *",
+        "display": "0 17 * * *"
+      },
+      "schedule_display": "0 17 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 2
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-13T19:33:56.471095+08:00",
+      "next_run_at": "2026-05-15T17:00:00+08:00",
+      "last_run_at": "2026-05-14T17:01:39.458516+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": {
+        "platform": "feishu",
+        "chat_id": "oc_771ff2d027aada6145a523f2fe6171ad",
+        "chat_name": "oc_771ff2d027aada6145a523f2fe6171ad",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    }
+  ],
+  "updated_at": "2026-05-15T10:29:24.724901+08:00"
+}

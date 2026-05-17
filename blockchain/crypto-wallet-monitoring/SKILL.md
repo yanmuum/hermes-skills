@@ -215,37 +215,13 @@ resp = rpc("eth_call", [{"to": contract, "data": decimals_data}, "latest"])
 
 ## Pitfalls
 
-### ❌ Proxy env vars block direct connections
-WSL often has `http_proxy`/`all_proxy` set. Unset them before RPC calls:
-```bash
-unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
-```
+### ❌ WSL proxy / networking issues
 
-### ❌ Hardcoded proxy may not be running
-A hardcoded proxy like `http://172.26.240.1:7890` (common in WSL to reach the Windows host) may be down. Always check liveness before spending a timeout:
-```python
-import socket
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.settimeout(3)
-result = s.connect_ex(('172.26.240.1', 7890))
-if result != 0:
-    print(f"Proxy port 7890 unreachable (errno {result}) — falling back to direct connection or RPC")
-    # Use empty proxy handler or unset proxy env var
-s.close()
-```
-
-Prefer env-var based proxy configuration (`http_proxy` / `https_proxy`) over hardcoded values so the user can control behavior without editing the script. Use `os.environ.get('http_proxy', 'http://172.26.240.1:7890')` to keep the hardcoded value as fallback but respect the env var.
-
-### ❌ IPv6 routes may be unreachable in WSL
-WSL2 may resolve hostnames to IPv6 addresses whose routes go through a "Network is unreachable" dead zone. Force IPv4 by patching `socket.getaddrinfo`:
-```python
-import socket
-_orig_getaddrinfo = socket.getaddrinfo
-def _ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
-    return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
-socket.getaddrinfo = _ipv4_only
-```
-This is critical for cron jobs where you can't manually retry with `-4` flag.
+When running from WSL, proxy env vars (`http_proxy`, `all_proxy`) block direct RPC connections, and IPv6 routes may be unreachable. See the **`wsl-deployment`** skill for comprehensive WSL proxy management, including:
+- Unsetting proxy vars before RPC calls
+- IPv4-only socket workaround for cron jobs
+- Proxy liveness checking
+- Conditional proxy aliases (`proxy-on`/`proxy-off`)
 
 ### ❌ eth_getLogs with wildcard addresses is slow
 Scanning ALL contracts for a wallet address is extremely heavy. Always specify the relevant token contract address when possible.

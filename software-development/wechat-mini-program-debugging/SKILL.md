@@ -2,6 +2,7 @@
 name: wechat-mini-program-debugging
 description: 微信小程序开发调试 — 模拟器故障排查、WSL路径处理、project.config.json/ app.json常见错误修复
 tags: [wechat, miniprogram, debug, 小程序, 模拟器]
+related_skills: [wsl-deployment, engineering-wechat-mini-program-developer]
 ---
 
 # 微信小程序调试技能
@@ -195,6 +196,8 @@ cp -r ~/project-name /mnt/c/Users/<用户名>/Desktop/
 ```
 
 然后从桌面 `C:\Users\<用户名>\Desktop\project-name` 导入。
+
+> **提示：** 关于 WSL ↔ Windows 文件桥接的更多场景（symbolic link junction、防火墙端口转发、WSL 网络代理管理），请参考 `wsl-deployment` 技能，其中包含完整的 WSL 网络和文件访问模式。
 
 ### 8. 验证步骤
 

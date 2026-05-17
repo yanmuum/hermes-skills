@@ -25,7 +25,7 @@ cron (17:00 daily)
 
 2. **Field names as keys** — `{"fields": {"技能名称": "value"}}` — the dict key is the **column header visible in the Feishu UI**, NOT the internal `field_id`.
 
-3. **Frontmatter vs directory name** — Skills' display names come from SKILL.md frontmatter `name:` field, not the directory name. Always parse frontmatter for the canonical name when comparing with bitable records.
+3. **Frontmatter vs directory name** — Skills' display names come from SKILL.md frontmatter `name:` field, not the directory name. Always parse frontmatter for the canonical name when comparing with bitable records. **⚠️ See Pitfalls below for the critical code-block fence bug** — a naive `---` toggle parser will be fooled by example/demo frontmatters inside ` ```yaml ` blocks.
 
 4. **Cutoff timestamp** — Skip bulk-initialized items by comparing mtime against a known batch-install timestamp. Use `>` comparison on floats (file mtime includes fractional seconds).
 
@@ -84,3 +84,26 @@ def get_token():
 - **Rate limits**: Multiple rapid POST requests may trigger Feishu rate limiting. Add `time.sleep(0.3)` between inserts if >20 records.
 - **Curl args order**: URL must be the LAST argument to curl.exe.
 - **No proxy config needed**: Windows curl auto-detects Windows system proxy.
+- **Frontmatter parser must skip fenced code blocks**: A naive `read_frontmatter()` that toggles `in_front` on every `---` will be fooled by SKILL.md files that contain example/demo frontmatters inside ` ```yaml ` code blocks. The `hermes-agent-skill-authoring` SKILL.md demonstrates this: its body contains a YAML code block with a second `---` pair demarking a template skill named `my-skill-name`. The parser re-enters "frontmatter mode" and overwrites the real name/description with the template values.
+  
+  **Fix**: Add `in_code_block` tracking. Toggle it on ```` ``` ```` markers. Only treat `---` as a frontmatter boundary when `not in_code_block`. This prevents code-block examples from polluting the parsed result.
+  
+  ```python
+  def read_frontmatter(content):
+      name = desc = ""
+      in_front = in_code_block = False
+      for line in content.split("\n"):
+          stripped = line.strip()
+          if stripped.startswith("```"):
+              in_code_block = not in_code_block
+              continue
+          if stripped == "---" and not in_code_block:
+              in_front = not in_front
+              continue
+          if in_front:
+              # parse name: and description: from frontmatter
+              ...
+          elif not in_front and not name:
+              break
+      return name, desc
+  ```

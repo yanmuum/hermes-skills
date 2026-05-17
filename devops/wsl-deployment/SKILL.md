@@ -8,7 +8,7 @@ dependencies: []
 metadata:
   hermes:
     tags: [WSL, Deployment, Networking, Proxy, Open-WebUI, Ollama]
-    related_skills: []
+    related_skills: [wechat-mini-program-debugging, feishu-bitables, crypto-wallet-monitoring]
 
 ---
 
@@ -680,38 +680,11 @@ This creates a folder on Desktop that points to the WSL directory. Some applicat
 
 ## WeChat DevTools + WSL: Common Issues
 
-When developing a WeChat Mini Program (小程序) in WSL and importing into WeChat DevTools on Windows:
+For comprehensive WeChat Mini Program debugging — including simulator failure diagnosis, WXML template syntax (optional chaining `?.` not supported), tabBar icon format restrictions (no SVG), unused component detection, and missing image placeholder generation — see the **`wechat-mini-program-debugging`** skill. It is the authoritative source for WeChat DevTools troubleshooting.
 
-### Issue: "模拟器失败" (Simulator Failed)
-
-**Most common cause:** The `appid` field in `project.config.json` is the placeholder `"wx0000000000000000"`.
-
-```json
-// project.config.json (problematic)
-{
-  "appid": "wx0000000000000000",
-  ...
-}
-```
-
-**Fix (two options):**
-
-1. **Use Test Account (最快)** — Re-import the project in WeChat DevTools, and at the AppID prompt select **「测试号（小程序）」** instead of entering a real AppID. The simulator will run with full functionality.
-
-2. **Use Real AppID** — Replace `"wx0000000000000000"` with the actual AppID from the WeChat Official Account Platform (微信公众平台), then reopen the project.
-
-### Issue: File Picker Can't Find WSL Project
-
-See "WSL → Windows File Access" section above. Copy the project to Desktop first, then import from there.
-
-### Other common "模拟器失败" causes
-
-| Cause | Symptom | Fix |
-|-------|---------|-----|
-| Missing page files | Console shows specific page path | Check that all pages in `app.json` have corresponding `.js/.json/.wxml/.wxss` files |
-| Missing tab icons | Tab bar renders incorrectly or blank | Check `images/tab/*` exist for all tabBar entries |
-| Syntax error in app.json | DevTools shows JSON parse error | Validate JSON (trailing commas are not allowed in JSON) |
-| SDK version mismatch | Feature not supported warning | Lower `libVersion` in `project.config.json` (e.g., `"3.0.0"`) |
+WSL-specific concerns relevant to WeChat DevTools:
+- **File Picker Can't Find WSL Project** → Copy to Desktop first (see "WSL → Windows File Access" above)
+- **Fake AppID** → Use Test Account or replace with real AppID in `project.config.json`
 
 ## Pitfalls
 
@@ -825,6 +798,64 @@ exec open-webui serve --host 127.0.0.1 --port 8080
 
 ### ❌ Open WebUI starts but shows no output in background mode
 Use `2>&1 | tee /path/to/logfile` to capture output. The background terminal tool may not buffer stdout immediately.
+
+### ❌ Playwright/Chromium 在 WSLg 中浏览器窗口闪退
+
+**现象**：`notebooklm login` 或任何使用 Playwright 浏览器 GUI 模式的命令，弹出 Chromium 窗口后 1-3 秒内自动关闭。终端命令随后退出。
+
+**原因**：WSLg（Weston compositor）的 X11/Wayland 渲染与 Playwright 的 Chromium 有兼容性问题。常见触发因素：
+- 浏览器 profile（`user_data_dir`）因前一次异常退出损坏
+- WSLg 的 Xwayland 使用软件渲染（`Failed to initialize glamor, falling back to sw`）
+- 多 WSL 实例竞争同一 DISPLAY
+
+**诊断方法**：
+```bash
+# 确认 WSLg 是否在运行
+ls /mnt/wslg/
+cat /mnt/wslg/weston.log | tail -20
+
+# 测试 Playwright Chromium 能否以 GUI 模式启动
+python3 -c "
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=False)
+    print('Browser GUI launched OK')
+    browser.close()
+"
+
+# 如果以上失败，检查 Playwright 版本和 Chromium 二进制
+python3 -m playwright install --dry-run chromium
+ls ~/.cache/ms-playwright/*/chrome-linux*/chrome
+```
+
+**修复方案**（按优先级）：
+
+1. **使用 `--fresh` 清除浏览器缓存**（最推荐）：
+   ```bash
+   notebooklm login --fresh
+   ```
+
+2. **跳过 Playwright，直接从 Windows 浏览器导出 cookies**：
+   这是 100% 可靠的替代方案 — 无需 WSLg 渲染。打开 Windows Chrome → F12 → Application → Cookies → Export as JSON → 贴给 Hermes。
+   
+   详见 `qiaomu-anything-to-notebooklm` 技能的 `references/wsl-manual-cookie-auth.md`。
+
+3. **使用 `--browser-cookies` 从已安装浏览器读取**（如果 WSL Linux 端有浏览器）：
+   ```bash
+   notebooklm login --browser-cookies
+   ```
+
+4. **验证 Playwright 版本是否匹配**：
+   ```bash
+   pip show playwright
+   python3 -m playwright install --dry-run chromium
+   python3 -m playwright install chromium
+   ```
+
+**注意事项**：
+- Playwright 的 headless 模式（`headless=True`）通常能在 WSL 正常工作
+- GUI 模式（`headless=False`）需要 WSLg 正常运行才可用
+- 如果 WSLg 完全崩溃（Weston 进程消失），所有 GUI 应用都会闪退
 
 ### ❌ First startup downloads models automatically
 The `all-MiniLM-L6-v2` embedding model is downloaded from HuggingFace on first startup. Set `HF_HUB_OFFLINE=1` to skip this if offline.
@@ -1024,8 +1055,8 @@ done
 - `references/openwebui-notes-bug-debug-session.md` — Full debug session: is_pinned TypeError root cause, database schema reference, migration history, and frontend note-routing issue analysis
 - `references/tailscale-setup-walkthrough.md` — Step-by-step Tailscale setup for remote Open WebUI access via WSL
 - `references/lan-phone-access-walkthrough.md` — LAN port forwarding walkthrough for phone access on same WiFi
+- `references/wsl-drive-readonly-mount.md` — Mount Windows drives (D:/F:/G:) read-only in WSL to prevent accidental deletion by agent tools
 - `scripts/wsl-ollama-proxy.py` — Standalone HTTP proxy from WSL to Windows Ollama (auto-discovers Windows IP, run in background before Open WebUI)
 
 ### Related sections in this skill
-
 - **Programmatic Admin API** (above) — Open WebUI v0.9+ REST API: auth, config import/export, connection verification, and the critical `api_configs` dict-vs-list pitfall

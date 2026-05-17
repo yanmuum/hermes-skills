@@ -215,9 +215,27 @@ pip install mcp
 
 No `mcp_servers` key in `~/.hermes/config.yaml`, or it's empty. Add at least one server.
 
-### "Failed to connect to MCP server 'X'"
+### "MCP server 'X' returned 401 Unauthorized"
 
-Common causes:
+The server is reachable but rejected the authentication credentials. Common causes:
+
+- **Invalid API key**: The key format may be wrong, expired, or not yet activated. Verify on the provider's website.
+- **Wrong header format**: Some MCP servers expect `Authorization: Bearer <key>` instead of a custom header like `x-api-key`. Check the provider's MCP documentation.
+- **Environment mismatch**: Some providers have separate China/International endpoints with different auth backends (e.g., AiToEarn: `aitoearn.cn` vs `aitoearn.ai`). Using the wrong URL for the API key returns 401.
+- **Key not activated**: Newly generated API keys may need to be activated/confirmed on the provider's dashboard before they work with the MCP endpoint.
+
+Diagnose:
+```bash
+# Test connectivity + auth with direct curl
+curl -sv -H "x-api-key: YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' \
+  https://provider.com/api/unified/mcp
+
+# 401 with structured JSON body → server reached, auth rejected
+# 404 → wrong URL path
+# 403/CF challenge → Cloudflare WAF blocking
+# timeout → network (likely GFW) blocking
+```
 - **Command not found**: The `command` binary isn't on PATH. Ensure `npx`, `uvx`, or the relevant command is installed.
 - **Package not found**: For npx servers, the npm package may not exist or may need `-y` in args to auto-install.
 - **Timeout**: The server took too long to start. Increase `connect_timeout`.

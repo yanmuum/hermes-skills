@@ -1,6 +1,28 @@
-# Feishu WebSocket Recovery After Network Changes
+# Feishu Gateway Troubleshooting
 
-Full debugging transcript for recovering Feishu gateway connections after network changes (VPN toggle, WiFi switch, proxy change).
+Complete diagnostics for Feishu gateway unresponsiveness — covering API balance issues, WebSocket disconnections, and the restart workflow.
+
+## Diagnostic Workflow (When Feishu Is Unresponsive)
+
+**Always check BOTH the gateway process AND the logs:**
+
+```bash
+# 1. Is the gateway running?
+ps aux | grep "gateway run" | grep -v grep
+ss -tlnp 2>/dev/null | grep 8642
+
+# 2. Check the gateway log for errors
+tail -30 ~/.hermes/logs/gateway.log
+grep -iE "error|402|fail|timeout|disconnect" ~/.hermes/logs/errors.log | tail -20
+```
+
+**Three possible states (solo or combined):**
+
+| State | Log Signal | Fix |
+|-------|-----------|-----|
+| API balance exhausted | `HTTP 402: Insufficient Balance` | Recharge DeepSeek/API account |
+| WebSocket disconnected | `keepalive ping timeout`, `SSL: UNEXPECTED_EOF_WHILE_READING` | Clean restart |
+| Both | Both signals appear | Recharge + restart |
 
 ## Error Signature
 
@@ -18,6 +40,17 @@ Earlier disconnection trace:
 ERROR Lark: receive message loop exit, err: sent 1011 (internal error) keepalive ping timeout; no close frame received
 WARNING gateway.platforms.feishu: [Feishu] Send attempt 1/3 failed ... ConnectTimeoutError ... Connection to open.feishu.cn timed out.
 ```
+
+## API Balance Exhaustion (HTTP 402)
+
+When the DeepSeek (or other provider) API account runs out of balance, **all** API calls fail silently. The gateway process is alive, Feishu WebSocket is connected, but messages are dropped because the agent can't call the LLM:
+
+```
+ERROR root: API call failed after 3 retries. HTTP 402: Insufficient Balance | provider=deepseek model=deepseek-v4-flash
+ERROR cron.scheduler: Job '...' failed: RuntimeError: HTTP 402: Insufficient Balance
+```
+
+**Fix:** Recharge at the provider's platform (e.g., https://platform.deepseek.com), then restart gateway.
 
 ## Root Causes
 
@@ -47,11 +80,19 @@ Each restart triggers a new Feishu WebSocket handshake.
 
 ## Recovery Procedure
 
-### Step 1: Kill ALL gateway processes
+### Step 1: Safe stop (preferred) or force kill (last resort)
 
+**Preferred method — safe graceful stop:**
 ```bash
-# Kill ALL hermes gateway processes (not just the latest one)
-pkill -9 -f "hermes.*gateway"
+hermes gateway stop
+sleep 3
+```
+
+**Only if gateway is truly hung (no response):**
+```bash
+# Find the PID manually, don't pkill by name
+ps aux | grep "gateway run" | grep -v grep | awk '{print $2}'
+kill -9 <PID>
 sleep 3
 ```
 
@@ -116,7 +157,7 @@ If all else fails, re-authorize:
 env | grep FEISHU
 
 # Restart with fresh token acquisition
-pkill -9 -f "hermes.*gateway"
+hermes gateway stop
 sleep 3
 hermes gateway run
 ```
@@ -133,8 +174,8 @@ When starting a gateway from within a Hermes terminal tool call:
 # ❌ BAD - causes orphaned replacements
 hermes gateway run --replace
 
-# ✅ GOOD - fresh start after killing old ones
-pkill -9 -f "hermes.*gateway"
+# ✅ GOOD - fresh start using safe workflow
+hermes gateway stop
 sleep 2
 hermes gateway run
 ```
@@ -161,7 +202,8 @@ tail -f ~/.hermes/logs/errors.log | grep -i "keepalive\|ping timeout\|disconnect
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
+| All messages fail (no inbound, no outbound) | API balance exhausted (`402 Insufficient Balance`) | Recharge provider account + restart gateway |
 | Outbound works, inbound dead | Feishu rate limit / stale WebSocket | Wait + clean restart |
 | `keepalive ping timeout` in errors.log | VPN/network change | Restart gateway |
-| Gateway keeps restarting | Orphaned `--replace` processes | `pkill -9` all, start fresh |
+| Gateway keeps restarting | Orphaned `--replace` processes | `hermes gateway stop` + fresh start |
 | `Received raw message` in logs but no reply | Different issue (session corruption, API error) | Check agent/errors.log |

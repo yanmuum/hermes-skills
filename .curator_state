@@ -1,8 +1,8 @@
 {
-  "last_report_path": null,
-  "last_run_at": "2026-05-08T02:35:29.450267+00:00",
-  "last_run_duration_seconds": null,
-  "last_run_summary": "deferred first run — curator seeded, will run after one interval; use `hermes curator run --dry-run` to preview now",
+  "last_report_path": "/home/yanmuu/.hermes/logs/curator/20260515-023910",
+  "last_run_at": "2026-05-15T02:39:10.752155+00:00",
+  "last_run_duration_seconds": 227.134089,
+  "last_run_summary": "auto: no changes; llm: ## Curator Summary\n\nAll 5 candidate skills are class-level in distinct categories (blockchain, engineering, productivity, software-development, devops) — none were narrow session artifacts, and none shared prefix clusters that would justify…",
   "paused": false,
-  "run_count": 0
+  "run_count": 1
 }

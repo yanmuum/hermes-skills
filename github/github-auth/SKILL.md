@@ -185,6 +185,78 @@ gh auth status
 
 ---
 
+## Method 3: Fine-Grained Personal Access Tokens (New GitHub UI)
+
+GitHub's newer token type with scoped, per-repository permissions. **These are NOT the same as classic tokens** — different UI, different permission model.
+
+### When to Use
+- User is on the **new GitHub token page** (https://github.com/settings/tokens/new, not `/tokens`)
+- User asks about "fine-grained" tokens or can't find the `repo` scope
+- You need granular, repo-level permissions instead of blanket account access
+
+### Permission Requirements by Task
+
+| Task | Required Permission | Level |
+|------|-------------------|-------|
+| Read repo contents | Contents | Read-only |
+| Push commits | Contents | Read and write |
+| Create PRs / Issues | Pull requests / Issues | Read and write |
+| Create a new repo | Administration | Read and write |
+| Manage Actions workflows | Actions / Workflows | Read and write |
+| Manage repo settings | Administration | Read and write |
+
+**Key differences from classic tokens:**
+- No `repo` mega-scope — permissions are individual and granular
+- `Metadata: Read-only` is **always auto-granted** (not configurable)
+- Repository access: must choose "All repositories" or "Only selected repositories"
+- Fine-grained tokens **cannot** create repos unless `Administration: Read and write` is explicitly added
+
+### Common Pitfalls
+
+**403 "Resource not accessible by personal access token"** — This is the most common error with fine-grained tokens. It means the token is missing the required permission for that API endpoint.
+
+```
+# Error when trying to create a repo with only Contents:RW
+{"message": "Resource not accessible by personal access token"}
+
+# Fix: add Administration → Read and write permission
+```
+
+**Fix:** Go to the token settings page (https://github.com/settings/tokens), find the token, click into it, add the missing permission, and click **Save changes** (no need to regenerate).
+
+### Saving the Token for CLI Use
+
+```bash
+# Save to ~/.hermes/.env (auto-loaded by Hermes)
+echo 'GITHUB_TOKEN=github_pat_xxx...' >> ~/.hermes/.env
+
+# Or embed in remote URL (per-repo)
+git remote add origin https://<username>:<token>@github.com/<owner>/<repo>.git
+```
+
+**Security note:** Never echo the token in terminal commands that get logged to shell history. Read from file instead:
+```bash
+export GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' ~/.hermes/.env | cut -d= -f2)
+```
+
+### Verifying
+
+```bash
+export GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' ~/.hermes/.env | cut -d= -f2)
+curl -s -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'✅ {d[\"login\"]}')"
+```
+
+### Migration from Classic to Fine-Grained
+
+| Classic Scope | Fine-Grained Equivalent |
+|--------------|------------------------|
+| `repo` (all) | Contents:RW + Pull Requests:RW + Issues:RW |
+| `workflow` | Actions:RW + Workflows:RW |
+| `admin:org` | Not available — use OAuth app instead |
+| `delete_repo` | Administration:RW |
+
+---
+
 ## Using the GitHub API Without gh
 
 When `gh` is not available, you can still access the full GitHub API using `curl` with a personal access token. This is how the other GitHub skills implement their fallbacks.

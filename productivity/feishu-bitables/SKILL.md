@@ -8,6 +8,7 @@ tags:
   - bitable
   - 多维表格
   - api
+related_skills: [wsl-deployment]
 ---
 
 # Feishu Bitable (多维表格) Operations
@@ -329,7 +330,7 @@ Valid type IDs for the Create/Update Field API:
 
 14. **Person field (type=18) reliably fails**: Creating a Person field via the API returns `LinkFieldPropertyError` regardless of permissions. The `contact:user` scope alone does NOT enable it. **Fallback**: Use Text (type=1) for now. Tell the user to right-click the column header → 「字段类型」→ switch to 「人员」in the Feishu UI — this works after the column has data in it.
 
-15. **WSL proxy blocks open.feishu.cn**: In WSL behind a Windows proxy client (Clash/V2Ray/Surge), DNS for `open.feishu.cn` gets hijacked to `198.18.x.x`, causing Python `requests` to hang/ timeout after 1-2 successful calls. Solution: route API calls through Windows curl — `CURL = "/mnt/c/Windows/System32/curl.exe"`, use `subprocess.run` instead of `requests`. Windows-side proxy handles the tunnel correctly.
+15. **WSL proxy blocks open.feishu.cn**: In WSL behind a Windows proxy client (Clash/V2Ray/Surge), DNS for `open.feishu.cn` gets hijacked to `198.18.x.x`, causing Python `requests` to hang/ timeout after 1-2 successful calls. Solution: route API calls through Windows curl — `CURL = "/mnt/c/Windows/System32/curl.exe"`, use `subprocess.run` instead of `requests`. Windows-side proxy handles the tunnel correctly. For comprehensive WSL proxy/networking patterns (conditional proxy aliases, DNS config, VPN disconnect recovery), see the **`wsl-deployment`** skill (this is its primary domain).
 
 16. **AutoNumber field: `auto_serial.type` must be `auto_increment_number`**: The type value `"auto_increment"` is INVALID. The only valid options are `"custom"` and `"auto_increment_number"`. Using `"auto_increment"` returns error `99992402` with `field_violations` describing valid options.
 
@@ -354,6 +355,41 @@ Valid type IDs for the Create/Update Field API:
     ```
 
 21. **File attachments from users may not arrive**: When a user says they sent a PDF/photo/file in Feishu chat, do NOT assume it was received. The gateway logs show every inbound message with its `media` flag — `media=0` means no attachment, `media=1` means attachment present. If the gateway was disconnected when the file was sent, Feishu does NOT replay it. See `references/feishu-file-attachment-diagnostics.md` for the full diagnostic workflow. When in doubt, ask the user to paste content directly rather than sending as a file.
+
+## Bulk Import from Filesystem Search
+
+When the user asks to search Windows/local folders for projects matching a keyword (e.g. "绣缎") and import results into an existing bitable:
+
+1. **Search the filesystem** — user's F:/G:/D: drives are under `/mnt/f/`, `/mnt/g/`, `/mnt/d/`. Use `find` with **`-maxdepth`** (4-8 depending on nesting) to avoid timeout on large directories:
+   ```bash
+   cd "/mnt/f/【建筑设计】" && find . -maxdepth 6 -iname '*绣缎*' 2>/dev/null
+   ```
+
+2. **Parse results into structured records** — group by directory/theme into a list of dicts mapping to the bitable's field names (not field_ids). Each record is one project row.
+
+3. **Need a reliable entry point?** Write a Python script to `/tmp/`, run via `terminal` (inherits `FEISHU_APP_ID`/`FEISHU_APP_SECRET` from the gateway process, which is redacted from `os.environ` in Python).
+
+4. **Use Windows curl for API calls** — Python `requests` to `open.feishu.cn` times out from WSL behind Windows proxy. Use `/mnt/c/Windows/System32/curl.exe` via `subprocess`:
+   ```python
+   CURL = ["/mnt/c/Windows/System32/curl.exe", "-s", "--connect-timeout", "10", "--max-time", "20"]
+   cmd = CURL + ["-H", f"Authorization: Bearer {token}", url]
+   result = subprocess.run(cmd, capture_output=True, text=True)
+   ```
+
+5. **Batch insert with rate limiting** — Feishu API accepts one record per POST. Add **`time.sleep(0.2)`** between records to avoid throttling. For 15-20 records expect ~3-4s total.
+
+6. **Date field gotcha** — DateTime fields expect **millisecond** timestamps, not seconds. Convert:
+   ```python
+   from datetime import datetime, timezone
+   def dt_ms(year, month, day):
+       dt = datetime(year, month, day, tzinfo=timezone.utc)
+       return int(dt.timestamp() * 1000)
+   ```
+
+7. **SingleSelect field reference by text** — When setting a SingleSelect field (e.g. "工程设计进度"), pass the option's display name as a string value, not its option ID. The API resolves it:
+   ```python
+   {"工程设计进度": "施工图设计"}  # ✅ not "optPdhrVNx"
+   ```
 
 ## Reference
 
