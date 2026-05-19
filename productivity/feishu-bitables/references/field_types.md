@@ -4,14 +4,14 @@
 
 | type | Name          | Notes | Working Example Property |
 |------|---------------|-------|--------------------------|
-| 1    | Text          | ✅ Works | `{}` |
+| 13   | URL           | ⚠️ **Misleading** — Creates Phone (ui_type=\"Phone\"), rejects URL values. Use type=1 (Text) instead | `{}` |
 | 2    | Number        | ✅ **Use for currency** | `{"formatter": "0", "decimal_places": 2}` |
 | 3    | SingleSelect  | ✅ Works | `{"options": [{"name": "选项1", "color": 0}]}` |
 | 4    | MultiSelect   | ✅ Works | Similar to SingleSelect |
 | 5    | DateTime      | ✅ Works | `{"auto_fill": true, "date_formatter": "yyyy/MM/dd"}` |
 | 7    | Checkbox      | ✅ | `{}` |
 | 11   | Phone         | ✅ | `{}` |
-| 13   | URL           | ✅ | `{}` |
+| 13   | URL           | ⚠️ **Misleading** — Creates Phone (ui_type=\"Phone\"), rejects URL values. Use type=1 (Text) instead | `{}` |
 | 15   | Location      | ✅ | `{"input_disabled": true}` |
 | 17   | Attachment    | ✅ | `{}` |
 | 18   | Person        | ✅ | `{}` |

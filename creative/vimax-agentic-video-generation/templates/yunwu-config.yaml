@@ -1,0 +1,50 @@
+# ViMax 云舞（yunwu.ai）配置模板
+
+适用于国内用户的 Idea2Video 配置方案：
+- Chat Model: OpenRouter（对话/剧本规划）
+- Image Generator: 云舞代理 Google Gemini Image
+- Video Generator: 云舞代理 Veo
+
+## configs/idea2video.yaml
+
+```yaml
+chat_model:
+  init_args:
+    model: google/gemini-2.5-flash-lite-preview-09-2025
+    model_provider: openai
+    api_key: sk-or-...e952     # OpenRouter Key
+    base_url: https://openrouter.ai/api/v1
+  max_requests_per_minute: 500
+  max_requests_per_day: 2000
+
+image_generator:
+  class_path: tools.ImageGeneratorNanobananaYunwuAPI
+  init_args:
+    api_key: <云舞_API_KEY>
+  max_requests_per_minute: 10
+  max_requests_per_day: 500
+
+video_generator:
+  class_path: tools.VideoGeneratorVeoYunwuAPI
+  init_args:
+    api_key: <云舞_API_KEY>
+  max_requests_per_minute: 2
+  max_requests_per_day: 50
+
+working_dir: .working_dir/idea2video
+```
+
+## 豆包方案（替代）
+
+```yaml
+image_generator:
+  class_path: tools.ImageGeneratorDoubaoSeedreamYunwuAPI
+  init_args:
+    api_key: <云舞_API_KEY>
+    model: doubao-seedream-4-0-250828
+
+video_generator:
+  class_path: tools.VideoGeneratorDoubaoSeedanceYunwuAPI
+  init_args:
+    api_key: <云舞_API_KEY>
+```

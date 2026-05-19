@@ -287,7 +287,7 @@ Valid type IDs for the Create/Update Field API:
 | 5    | DateTime      | 日期 — use `property.auto_fill` + `property.date_formatter` |
 | 7    | Checkbox      | 复选框 |
 | 11   | Phone         | 电话 |
-| 13   | URL           | 链接 |
+| 13   | URL           | ❌ **不工作** — 创建为 Phone (ui_type="Phone")，写入URL时报"Failed to convert phone field"，用 type=1 (Text) 替代 |
 | 15   | Location      | 位置 |
 | 17   | Attachment    | 附件 |
 | 18   | Person        | 人员 — ❌ API创建返回 `LinkFieldPropertyError`，改用 Text(type=1) 并在 UI 中切换 |
@@ -354,7 +354,9 @@ Valid type IDs for the Create/Update Field API:
     {"receive_id": "oc_xxx", "msg_type": "text", "content": "{\"text\":\"Hello\"}"}
     ```
 
-21. **File attachments from users may not arrive**: When a user says they sent a PDF/photo/file in Feishu chat, do NOT assume it was received. The gateway logs show every inbound message with its `media` flag — `media=0` means no attachment, `media=1` means attachment present. If the gateway was disconnected when the file was sent, Feishu does NOT replay it. See `references/feishu-file-attachment-diagnostics.md` for the full diagnostic workflow. When in doubt, ask the user to paste content directly rather than sending as a file.
+21. **type=13 (URL) creates Phone field instead of URL** — Creating a field with `type: 13` returns `type=13, ui_type="Phone"` in the API response. When you try to write a URL value to it, you get error: `"Failed to convert phone field, please make sure it is correct."` The API misinterprets URL data as phone numbers. **Fix**: Use `type=1` (Text) for storing URLs — it accepts any string including full URLs, and the column header label can still be "GitHub网址" or similar.
+
+22. **File attachments from users may not arrive**: When a user says they sent a PDF/photo/file in Feishu chat, do NOT assume it was received. The gateway logs show every inbound message with its `media` flag — `media=0` means no attachment, `media=1` means attachment present. If the gateway was disconnected when the file was sent, Feishu does NOT replay it. See `references/feishu-file-attachment-diagnostics.md` for the full diagnostic workflow. When in doubt, ask the user to paste content directly rather than sending as a file.
 
 ## Bulk Import from Filesystem Search
 
